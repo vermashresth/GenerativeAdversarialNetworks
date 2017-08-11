@@ -8,6 +8,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Flatten, Reshape, InputLayer
 from keras.regularizers import L1L2
 
+import keras_adversarial
 import tensorflow
 
 seed=128
@@ -28,15 +29,15 @@ test_labels = mnist.test_labels()"""
 train=pd.read_csv("/home/petrichor/Downloads/mnist/train.csv")
 print "loaded"
 #print len(mnist.images)
-
+"""
 array=np.reshape(train.iloc[1,1:].values,(28,28))
 print array.shape	
-"""
+
 img = imread(train.iloc[1,1:].values, flatten=True)
 
 pylab.imshow(img, cmap='gray')
 pylab.axis('off')
-pylab.show()"""
+pylab.show()
 
 pixels = np.array(train.iloc[1,1:].values, dtype='uint8')
 # Reshape the array into 28 x 28 array (2-dimensional array)
@@ -48,3 +49,47 @@ cv2.destroyAllWindows()
 img=np.array(array,np.uint8)
 cv2.imshow("ii",img)
 cv2.waitKey(0)
+"""
+
+g_input_shape = 100 
+d_input_shape = (28, 28) 
+hidden_1_num_units = 500 
+hidden_2_num_units = 500 
+g_output_num_units = 784
+d_output_num_units = 1
+epochs = 25
+batch_size = 128
+
+# generator
+model_1 = Sequential([
+    Dense(units=hidden_1_num_units, input_dim=g_input_shape, activation='relu', kernel_regularizer=L1L2(1e-5, 1e-5)),
+
+    Dense(units=hidden_2_num_units, activation='relu', kernel_regularizer=L1L2(1e-5, 1e-5)),
+        
+    Dense(units=g_output_num_units, activation='sigmoid', kernel_regularizer=L1L2(1e-5, 1e-5)),
+    
+    Reshape(d_input_shape),
+])
+
+# discriminator
+model_2 = Sequential([
+    InputLayer(input_shape=d_input_shape),
+    
+    Flatten(),
+        
+    Dense(units=hidden_1_num_units, activation='relu', kernel_regularizer=L1L2(1e-5, 1e-5)),
+
+    Dense(units=hidden_2_num_units, activation='relu', kernel_regularizer=L1L2(1e-5, 1e-5)),
+        
+    Dense(units=d_output_num_units, activation='sigmoid', kernel_regularizer=L1L2(1e-5, 1e-5)),
+])
+
+print model_1.summary()
+print model_2.summary()
+
+
+gan = simple_gan(model_1, model_2, normal_latent_sampling((100,)))
+model = AdversarialModel(base_model=gan,player_params=[model_1.trainable_weights, model_2.trainable_weights])
+model.adversarial_compile(adversarial_optimizer=AdversarialOptimizerSimultaneous(), player_optimizers=['adam', 'adam'], loss='binary_crossentropy')
+
+
