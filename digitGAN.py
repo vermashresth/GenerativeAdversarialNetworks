@@ -28,6 +28,12 @@ test_labels = mnist.test_labels()"""
 
 train=pd.read_csv("/home/petrichor/Downloads/mnist/train.csv")
 print "loaded"
+
+temp=[]
+for i in range(train.shape[0]):
+	temp.append(train.iloc[i,:])
+print len(temp)
+train_x=np.stack(temp)
 #print len(mnist.images)
 """
 array=np.reshape(train.iloc[1,1:].values,(28,28))
@@ -87,9 +93,17 @@ model_2 = Sequential([
 print model_1.summary()
 print model_2.summary()
 
+from keras_adversarial import AdversarialModel, simple_gan, gan_targets
+from keras_adversarial import AdversarialOptimizerSimultaneous, normal_latent_sampling
 
 gan = simple_gan(model_1, model_2, normal_latent_sampling((100,)))
 model = AdversarialModel(base_model=gan,player_params=[model_1.trainable_weights, model_2.trainable_weights])
 model.adversarial_compile(adversarial_optimizer=AdversarialOptimizerSimultaneous(), player_optimizers=['adam', 'adam'], loss='binary_crossentropy')
+
+print gan.summary()
+
+history = model.fit(x=train_x, y=gan_targets(train_x.shape[0]), epochs=10, batch_size=batch_size)
+
+
 
 
